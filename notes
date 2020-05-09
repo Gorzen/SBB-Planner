@@ -1,0 +1,6 @@
+- Pour le moment, que un jour de disponible, si plusieurs possibilité de faire un graph par jour vu que on va se restreindre a ~8h-19h
+- Problème d'encoding, Zürich devient Z\xcdrich
+- Ajouter les edges pour le temps d'attente
+- Ajouter les edges pour la marche
+- Filtre des stations très simpliste pour l'instant (just check that distance to zurich is <= 15km)
+    -> checker que c'est accessible de Zurich HB en utilisant les stations disponibles
