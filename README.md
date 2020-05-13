@@ -46,7 +46,7 @@ Probably not. However, most public transport applications will insist on the fir
 
 In this final project you will build your own _robust_ public transport route planner to improve on that. You will reuse the SBB dataset (See next section: [Dataset Description](#dataset-description)).
 
-Given a desired departure, or arrival time, your route planner will compute the fastest route between two stops within a provided uncertainty tolerance expressed as interquartiles.
+Given a desired arrival time, your route planner will compute the fastest route between two stops within a provided uncertainty tolerance expressed as interquartiles.
 For instance, "what route from A to B is the fastest at least Q% of the time if I want to leave from A (resp. arrive at B) at instant T". Note that *uncertainty* is a measure of a route not being feasible within the time computed by the algorithm.
 
 In order to answer this question you will need to:
@@ -175,17 +175,34 @@ In some cases, the actual times were not measured so the `AN_PROGNOSE_STATUS`/`A
 
 #### Time table data
 
-We have copied the  [timetable](https://opentransportdata.swiss/en/cookbook/hafas-rohdaten-format-hrdf/#Abgrenzung) to HDFS.
-
-We are in the process of converting the files in an easy to query table form, and will keep you updated when the tables are available.
-
-You will find there the timetables for the years [2018](https://opentransportdata.swiss/en/dataset/timetable-2018-gtfs)-[2019](https://opentransportdata.swiss/en/dataset/timetable-2019-gtfs).
-The timetables are updated weekly. It is ok to assume that the weekly changes are small, and a timetable for
-a given week is thus the same for the full year - you can for instance use the schedule of May 13-17, 2019, which was
-a typical week for the year.
+We have copied the  [timetable](https://opentransportdata.swiss/en/cookbook/hafas-rohdaten-format-hrdf/#Abgrenzung) to HDFS, under
+`/data/sbb/timetables/csv/`.
 
 Only GTFS format has been copied on HDFS, the full description of which is available in the opentransportdata.swiss data [timetable cookbooks](https://opentransportdata.swiss/en/cookbook/gtfs/).
 The more courageous who want to give a try at the [HDFS](https://opentransportdata.swiss/en/cookbook/hafas-rohdaten-format-hrdf/) format must contact us.
+
+You will find there the timetables for the years [2018](https://opentransportdata.swiss/en/dataset/timetable-2018-gtfs)-[2019](https://opentransportdata.swiss/en/dataset/timetable-2019-gtfs) in GTFS format.
+The timetables are updated weekly. It is however, ok to assume that the weekly changes are small, and a timetable for
+a given week is thus the same for the full year - you can for instance use the schedule of May 13-17, 2019, which was
+a typical week for the year.
+
+In addition, we have also converted the files corresponding to the week of May 14th 2019 to the ORC format.
+You can find them under `/data/sbb/timetables/orc`.
+This format is easily read in Spark as illustrated in the following example. Replace `stop_times` with the appropriate name
+in order to read the other tables.
+
+```
+spark.read.orc("hdfs:///data/sbb/timetables/orc/stop_times").registerTempTable("stop_times_df")
+sqlContext.sql("select * from stop_times_df limit 10)").show(10)
+```
+
+Alternatively, `sqlContext` provides a full hive context in Spark, and it supports most of Hive _DDL_, _DML_ (but don't), and _Data Retrieval_ queries.
+For your convenience, we include with each data type below, the _DDL_ query that was used to create the external tables in Hive.
+
+**Note**: if you use the HiveContext in Spark, it will use by default a local metadata store, which means that you will
+need to create your database and tables from scratch using the usual _DDL_ commands. You can configure your sparkmagic session
+to connect to an existing metadata store, but unless you want to access pre-existing views managed by Hive,
+you will most probably not need to do that. 
 
 We provide a summary description of the files below. The most relevant files are marked by (+):
 
@@ -197,6 +214,22 @@ We provide a summary description of the files below. The most relevant files are
     - `STOP_LON`: stop longitude
     - `LOCATION_TYPE`:
     - `PARENT_STATION`: if the stop is one of many collocated at a same location, such as platforms at a train station
+    
+    The data (3rd week May 2019) is available in ORC format under `/data/sbb/timetables/orc/stops/` - as follows:
+    
+    ```
+    create external table <database>.sbb_stops_orc(
+        STOP_ID        string,
+        STOP_NAME      string,
+        STOP_LAT       double,
+        STOP_LON       double,
+        LOCATION_TYPE  string,
+        PARENT_STATION string
+    )
+    stored as orc
+    location '/data/sbb/timetables/orc/stops'
+    tblproperties ('orc.compress'='SNAPPY','immutable'='true');
+    ```
 
 * stop_times.txt(+):
 
@@ -207,6 +240,23 @@ We provide a summary description of the files below. The most relevant files are
     - `STOP_SEQUENCE`: sequence number of the stop on this trip id, starting at 1.
     - `PICKUP_TYPE`:
     - `DROP_OFF_TYPE`:
+    
+    This data is available in ORC format under `/data/sbb/timetables/orc/stop_times/` - as follows:
+    
+    ```
+    create external table <database>.sbb_stop_times_orc(
+        TRIP_ID        string,
+        ARRIVAL_TIME   string,
+        DEPARTURE_TIME string,
+        STOP_ID        string,
+        STOP_SEQUENCE  smallint,
+        PICKUP_TYPE    tinyint,
+        DROP_OFF_TYPE  tinyint
+    )
+    stored as orc
+    location '/data/sbb/timetables/orc/stop_times'
+    tblproperties ('orc.compress'='SNAPPY','immutable'='true');
+    ```
 
 * trips.txt:
 
@@ -217,12 +267,46 @@ We provide a summary description of the files below. The most relevant files are
     - `TRIP_SHORT_NAME`: internal identifier for the trip_headsign (note TRIP_HEADSIGN and TRIP_SHORT_NAME are only unique for an agency)
     - `DIRECTION_ID`: if the route is bidirectional, this field indicates the direction of the trip on the route.
     
+    This data is available in ORC format under `/data/sbb/timetables/orc/trips` - as follows:
+    
+    ```
+    create external table <database>.sbb_trips_orc(
+        ROUTE_ID        string,
+        SERVICE_ID      string,
+        TRIP_ID         string,
+        TRIP_HEADSIGN   string,
+        TRIP_SHORT_NAME string,
+        DIRECTION_ID    tinyint
+    )
+    stored as orc
+    location '/data/sbb/timetables/orc/trips'
+    tblproperties ('orc.compress'='SNAPPY','immutable'='true');
+    ```
+    
 * calendar.txt:
 
     - `SERVICE_ID`: identifier (PK) of a group of trips sharing a same calendar and calendar exception pattern.
     - `MONDAY`..`SUNDAY`: 0 or 1 for each day of the week, indicating occurence of the service on that day.
     - `START_DATE`: start date when weekly service id pattern is valid
     - `END_DATE`: end date after which weekly service id pattern is no longer valid
+    
+    This data is available in ORC format under `/data/sbb/timetables/orc/calendar` - as follows (note we omitted start-end dates):
+    
+    ```
+    create external table <database>.sbb_calendar_orc(
+        SERVICE_ID string,
+        MONDAY     boolean,
+        TUESDAY    boolean,
+        WEDNESDAY  boolean,
+        THURSDAY   boolean,
+        FRIDAY     boolean,
+        SATURDAY   boolean,
+        SUNDAY     boolean
+    )
+    stored as orc
+    location '/data/sbb/timetables/orc/calendar'
+    tblproperties ('orc.compress'='SNAPPY','immutable'='true');
+    ```
     
 * routes.txt:
 
@@ -232,6 +316,22 @@ We provide a summary description of the files below. The most relevant files are
     - `ROUTE_LONG_NAME`: (empty)
     - `ROUTE_DESC`: _Bus_, _Zub_, _Tram_, etc.
     - `ROUTE_TYPE`:
+    
+    This data is available in ORC format under `/data/sbb/timetables/orc/routes` - as follows:
+    
+    ```
+    create external table <database>.sbb_routes_orc(
+        ROUTE_ID         string,
+        AGENCY_ID        string,
+        ROUTE_SHORT_NAME string,
+        ROUTE_LONG_NAME  string,
+        ROUTE_DESC       string,
+        ROUTE_TYPE       smallint
+    )
+    stored as orc
+    location '/data/sbb/timetables/orc/routes'
+    tblproperties ('orc.compress'='SNAPPY','immutable'='true');
+    ```
     
 Notes: PK=Primary Key (unique), FK=Foreign Key (refers to a Primary Key in another table)
 
@@ -322,3 +422,41 @@ However, this is not recommended, or it should come with a warning.
 Imagine from a user experience perspective, how would you react if you are being proposed a plan in which a transfer is scheduled to depart before you arrive?
 Furthermore, who would you blame if the plan fails: the planner that came up with a theoretically infeasible plan, or the operator who respected their schedule?
 
+##### 4 - Q: How are the inputs of the solution entered
+* **A**: You will enter the numerial IDs of the starting and terminating station (bus, trams, trains, ...), a desired time of arrival, and
+a minimum confidence level. You do not need to enter a day. The route is for a typical business day of the week, not a week-end, or bank holiday.
+That is you can filter out all services that are not on normal business days from your options.
+The output must be the service that allows you to leave at the latest, while arriving before the specified time at your destination,
+and with a probability of success equal or higher than the specified certainty level.
+
+##### 5 - Q: Do we need to visualize the output on a map
+* **A**: You do not need to visualize the results. A list in textual form will be sufficient. Note that the list must display at a minimum
+the starting time, the routes, arrival time, and confidence level.
+If it involves transfers, the list must also include the arrival & departure times, and intermediate routes at the transfer points.
+
+##### 6 - Q: How do we validate the solution
+* **A**: We can give a hint: we will pick two stations and a maximum time of arrival, which has different routes with known
+probability of success.  It is a `sucess` if on a given day and time we are
+able to catch all the connections and arrive before the specified time limit, otherwise it is a `failure`. We compute the probability
+as `number of successes/(number of successes + number of failures)` by repeating this over a given time period of many days
+(business days only), and we compare your results, i.e. routes and minimum success guarantee with ours.
+
+##### 7 - Q: If a stop in the 15km radius is connected only through a bus or train that stops outside the 15km radius, should this stop be considered?
+* **A**: No, this stop should be considered, because the bus or train goes through stops that are outside the 15km radius.
+
+##### 8 - Q: Can we use any libraries for the project?
+* **A**: You are free to use any libraries you want for the project. The only constraint is that you must configure your Docker image
+so that we don't have to configure our jupyter environment ourselves in order to validate your results. Feel free to ask us
+if you need us to install the library on the hadoop cluster. 
+
+##### 9 - Q: Any preferences for computing geo distances?
+* **A**: Any method with a few meters accuracy, is acceptable - the most accurate is the `vincenty` method, but `harversine` is perfectly
+fine, or you can use an existing method from one of the provided libraries. We have installed `geopy`, `networkx`, `scikit-learn`,
+`bokeh` and `matplotlib` for your convenience.
+
+##### 10 - Q: Can we solve it as shortest path algorithm?
+* **A**: Yes, or more precisely as a constrained shortest path algorithm. It is a robust optimization problem. The constraints
+are that you must arrive before a time limit with a minimum confidence level,
+and it must be a valid route on the the public transport infrastructure and schedule. The objective is to maximize the time of
+derpature, so that you spend the least time between the departing stop and the arrival stop, and any algorithm that achieves
+this objective is fine. As a starting point, we present you with a list of algorithms you may want to consider: https://transport.okfn.org/index-60.html.
