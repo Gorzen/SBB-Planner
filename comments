@@ -1,0 +1,2 @@
+- Problème d'encoding, Zürich devient Z\xcdrich
+- Ajouter les edges pour le temps d'attente
