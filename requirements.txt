@@ -1,3 +1,4 @@
+conda
 pandas
 numpy
 matplotlib
@@ -9,3 +10,4 @@ scikit-learn
 statsmodels
 folium
 pycausalimpact
+pyarrow
