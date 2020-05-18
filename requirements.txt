@@ -1,3 +1,4 @@
+conda
 pandas
 numpy
 matplotlib
