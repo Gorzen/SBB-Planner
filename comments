@@ -1,2 +1,4 @@
 - Problème d'encoding, Zürich devient Z\xcdrich
-- S'occuper des transferts avec le meme stop_id mais différente lignes
+- Note forget:
+    - 100MB max for the repo
+- Viz instruction
