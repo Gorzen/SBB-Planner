@@ -13,6 +13,12 @@ def minute_to_string(m):
     
     return time_string
 
+def convertToMinute(s):
+    h, m = s.split(':')
+    h,m = int(h), int(m)
+    
+    return h*60+m
+
 def normal_dijkstra(G, first_source, paths=None, cutoff=None, last_target=None):
     
     G_succ = G.succ if G.is_directed() else G.adj
@@ -96,7 +102,7 @@ def compute_delay_uncertainty(mean, std, confidence):
         if mean == None or std == None:
             return 0
         
-        num_sample = 50 # how many (source, target, train_id, hour) tuple there is
+        num_sample = 50 # how many (source, target, train_id, hour) tuple there are
         t_quantile = stats.t(df=num_sample-1).ppf(confidence)
         mean_deviation = t_quantile * std / np.sqrt(num_sample)
         delay = mean_deviation
