@@ -1,5 +1,7 @@
 Our robust journey planner is composed of multiple jupyter notebooks. They all have a specific purpose (e.g. to create a certain data structure) but act as a whole together. However, they all are independent in the sense that by default the data is loaded from our home directories so each one of them can be run separetely, to avoid the need of running all notebooks to be able to use the planner. The actual planner is in the file `main.ipynb`. The goal of each notebook, except for `main.ipynb`, is to ease the creation of the network used by the predictive algorithm of the planner. They will create intermediate data structures to this aim.
 
+The video presenting the project can be found [here](https://www.youtube.com/watch?v=Z4xStTFRn4g)
+
 # The network
 ## The structure
 The network we use is a directed multigraph (a graph with potentially multiple edges between nodes), with stations as nodes and part of the travel as edges. In other words, nodes are the points in space and edges how someone go from one to another. For example, an edge could be a five minute walk to change from a bus station to a train platform or a travel using any transport; bus, tram, train, etc. If it is an edge related to a transport, it will be an 'atomic part' of travel, so if there is an edge for a train from node A to node B it means that the train does not stop between A and B. Since the planner takes only into account a 15km radius around _Zürich HB_ the number of nodes is reasonable, however for the number of edges to be reasonable we assume that the maximum travel time in this zone is 2 hours and create the network for the 2 hour that precedes the arrival time.
@@ -31,3 +33,12 @@ PUT DIAGRAM
 
 # Possible improvements
 ???
+
+# Contributions
+**Marijn Van Der Meer**:
+
+**Lucien Iseli**:
+
+**Florian Ravasi**:
+
+**Jules Gottraux**:
