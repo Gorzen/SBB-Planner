@@ -1,44 +1,108 @@
-Our robust journey planner is composed of multiple jupyter notebooks. They all have a specific purpose (e.g. to create a certain data structure) but act as a whole together. However, they all are independent in the sense that by default the data is loaded from our home directories so each one of them can be run separetely, to avoid the need of running all notebooks to be able to use the planner. The actual planner is in the file `main.ipynb`. The goal of each notebook, except for `main.ipynb`, is to ease the creation of the network used by the predictive algorithm of the planner. They will create intermediate data structures to this aim.
+# Robust Journey Panner SBB/CFF: 
 
+Our robust journey planner is composed of multiple jupyter notebooks. They all have a specific purpose (e.g. to create a certain data structure) but act as a whole together. However, they all are independent in the sense that by default the data is loaded from our home directories so each one of them can be run separetely, to avoid the need of running all notebooks to be able to use the planner. The actual planner is in the file `main.ipynb`. The goal of each notebook, except for `main.ipynb`, is to ease the creation of the network used by the predictive algorithm of the planner. They will create intermediate data structures to this aim.
+### Video: 
 The video presenting the project can be found [here](https://www.youtube.com/watch?v=Z4xStTFRn4g)
 
-# The network
-## The structure
-The network we use is a directed multigraph (a graph with potentially multiple edges between nodes), with stations as nodes and part of the travel as edges. In other words, nodes are the points in space and edges how someone go from one to another. For example, an edge could be a five minute walk to change from a bus station to a train platform or a travel using any transport; bus, tram, train, etc. If it is an edge related to a transport, it will be an 'atomic part' of travel, so if there is an edge for a train from node A to node B it means that the train does not stop between A and B. Since the planner takes only into account a 15km radius around _Zürich HB_ the number of nodes is reasonable, however for the number of edges to be reasonable we assume that the maximum travel time in this zone is 2 hours and create the network for the 2 hour that precedes the arrival time.
+## The network:
+### Structure:
+The network we use is a directed multigraph (a graph with potentially multiple edges between nodes), with stations as nodes and part of the journey as edges. In other words, nodes are  points in space (stations) and edges how someone can go from one to another. For example, an edge could be a five minute walk to change from a bus station to a train platform or a journey using any other type of transport (bus, tram, train, etc). Edges are atomic parts of a journey, so if there is an edge for a train from node A to node B it means that the transportation mode does not stop between A and B. Since the planner takes only into account a 15km radius around _Zürich HB_ the number of nodes is reasonable. However, for the number of edges to be reasonable we assume that the maximum travel time in this zone is 2 hours. Thus, the network only contains edges that occur in a 2 hour window before the arrival time. Once the network is built, all the information needed is contained in it. 
 
-Once the network is built, all the informations needed are contained in it. For the edge corresponding to walking travels, there can only be at most one of them between nodes as we can start to walk at any time, the only informations useful for these edges is the duration. However for a travel using public transport more informations are required: the time of departure, the type of transport, the id of the current transport travel and the duration along with its uncertainty. The id can be used to know if the user has to change transport at a given station platform. The time of departure's use is obvious, this is the principal reason that multiple edges are possible between nodes. The other reason is that the uncertainty we compute depends on the type of transport (bus, tram, but also type of train if it is a train), on which nodes are the end of the travel but also on the hour of the travel. We use this information to get better estimates as the delays will not be the same at 10am or 5pm. For the uncertainty we store the durations corresponding the each possible uncertainty, meaning that we compute a confidence interval for the durations that approximate the duration we have to take into account if we want to be sure at a certain confidence level to be arrived at the station. For the choice of confidence, we choose to use only the following: 0.9, 0.91, 0.92, ..., 0.99. This is because we find that fine grain enough and a lower confidence interval will likely not change the travel, from a user point of view it does not make sense to require a minimum confidence level for its path but to set it to 50%.
-
-## How it is built
+- Nodes: 
+	- Stop ID
+	- Latitude
+	- Longitude
+- Walking edges: there can only be at most one of them between nodes as we can start to walk at any time so the only useful information is its duration. 
+	- departure time: -1 (to distinguish them from public transport edges)
+	- duration: time to walk along the edge
+- Public transport edges: 
+	- departure time
+	- duration: time from one station to the next
+	- type of transport: bus, train, etc.
+	- trip id: used to know if the user has to change transport at a given station platform
+	- mean and std of delay distribution: the uncertainty we compute depends on the type of transport (bus, tram, but also type of train if it is a train) and on the time of travel (e.g. probably not the same delay at 8 p.m. and 12 p.m.) for nodes at the end of a journey. As we assume that travel delays are uncorrelated between stations, we we only ever calculate the delay of an edge if change from one trip to another or change from one trip to a walking edge. 
+	- several delays sampled from different confidence intervals: delays we have to take into account if we want to be sure at a certain confidence level to arrive at a station. For the choice of confidence, we choose to use only the following: 0.9, 0.91, 0.92, ..., 0.99. This is because we find that fine grain enough and a lower confidence interval will likely not change the chosen journey. Furthermore, from a user point of view it does not make sense to allow much lower intervals. 
+	
+### How it is built: 
 Concerning the creation of the network, the following diagram illustrate the data pipeline of our project, each rectangle corresponds to a file (either created or already present in the hdfs filesystem if it is at the root level) and each ellipse is a notebook.
 
-PUT DIAGRAM
+<img src="data/data_pipeline.png" alt="data_pipeline" width="700"/>
 
-**create_edges_and_nodes**: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+**create_edges_and_nodes**: This notebook creates the nodes from all stations around Zurich HB (in 15 km radius) and the edges between all stations during the day (8am to 8pm). It will then write these to the home of the person running the notebook.
 
-**create_walking_edges**: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+**create_walking_edges**: This notebook computes the time it takes to walk between stations that are under 500m from each-other. It will then be saved as a pickle file. The time to walk is extracted from the `transfers file present on the hdfs filesystem and otherwise is computed as 2min + 1min per 50m.
 
-**compute_statistics**: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+**compute_statistics**: This notebook computes the mean, std and needed percentiles of waiting time for the arrival time of each train type, hour and station. It uses the historical data of the SBB. It will write the created data as an ORC file in the home of the user running the notebook. Note, this notebook takes approximately 30 minutes to run.
 
-**add_statistics_to_edges**: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+**add_statistics_to_edges**: In this notebook, the statistical data computed in `compute_mean_std.ipynb` and saved in `delay_distribution_percentiles.or` are loaded and added to the edges of our network (saved to `edges_with_mean_and_std_sec.orc`, in the home of the current user). This will later be used to create a network.
 
-**find_train_type_correspondance**: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+**find_train_type_correspondance**: Finds the transport types for all edges in the network (e.g. Bus, RE, etc). 
 
-**main**: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+**main**: This notebook, as long as it's run from the hdfs repo of one of our users (as set in the beginning of the notebook) should be enough to obtain the desired planner as all dataframes necessary are stored on our repos. Otherwise, you are welcome to first run the other notebooks and run from your repo. 
 
-# Predictive algorithm
-- Reverse the network
-- (Reversed) dijkstra
-- how we handle the probabilities (while the validating does not work, use the confidence interval for the duration in the algorithm)
-- ???
+## Predictive algorithm: 
 
-# Possible improvements
+To find shortest paths on our network, we applied the a modified version of Dijkstra's algorithm for shortest paths. First we reversed our netowrk, meaning that now all edges pointed from their target to their source. Because we are required to enter an arrival time and not a departure, this made computations easier. 
+
+### Modified Dijkstra: 
+
+Input:
+- first_source : node from which we start path
+- last_target : final target node
+- arrival time: time from which we start algo
+- graph: reversed network where edges point from their source to their target
+- confidence: confidence of path
+
+Output: shortest path from source to target
+
+Mark all nodes unvisited: 
+- dic of visited nodes: seen = {} 
+- dic with final distances: dist = {}
+- queue = empty
+
+Start with the target node: 
+- Assign to our target node the departure time as starting distance (instead of 0 as in normal Dijkstra): `dist[last_target] = departure_time`
+- queue += (d = `departure_time`, node = `last_target`)
+
+While the queue is not empty: 
+- Take first node source in queue and its distance d, if it's not already in the dictionnary of final distances: 
+ - Update dist[source] = d
+ - If source == first_source of Dijkstra : STOP 
+ - For all target in its direct neighbours: 
+    - For all edges to target from source (multigraph): Now because we do Dijkstra on the reverse network and want to go "into the past" from the last_target node, we put all distances as negative (e.g. departure time of an edge will be -750 min instead of 750). As distances to nodes will be their departure time, this allows us to find the path that leaves the latest to arrive at our desired target (e.g. the shortest path). 
+    - `dep_time_edge`= - departure_time[edge]
+    - `duration_cost`= duration[edge]
+    - if `dep_time_edge - duration_cost > dist[source]`(e.g the time to the source is enough to take a new connection): `current_distance = dep_time_edge`. 
+    - if target not in {seen} (e.g. not been seen before) or  `current_dist < seen[target]` (e.g. there is a quicker way to neighbour): 
+        - Update the seen distance to neighbour in seen dictionnary: seen[target] = current_distance
+        - Push it onto queue so that we will look at its descendants later and update the final distance to target: queue += (current_distance, target)
+
+During the implementation of this algorithm, confidence intervals are added the following way: 
+- for edges that are a connection between two different public transports, a connection can be only made if there is at least 2 minute transfer time + enough time if a delay sampled from the given interval is added
+- for connections from public transport to walking, a walking edge will leave later if a delay is sampled from the last public transport edge
+- a final path is validated for the input confidence, meaning that for each edge that could cause problems in the path (e.g transport 1 -> transport 2 or transport -> walk), we sample a delay and see if the path remains feasible. This operation is repeated a hundred times. At the end, if the percentage of feasible paths is lower than the desired confidence, we increase our input confidence by 0.1 (e.g. from 0.9 to 0.91) and repeat Dijkstra's algorithm to find a new path. This operation is repeated till it finds a path validated to the desired confidence or no path. 
+
+For more information about the algorithms, you are more than welcome to look at the source code. 
+
+## Possible improvements
 ???
 
-# Contributions
-**Marijn Van Der Meer**:
-
-**Lucien Iseli**:
-
-**Florian Ravasi**:
-
-**Jules Gottraux**:
+## Contributions
+- **Marijn Van Der Meer**: 
+	- elaboration and implementation of network
+	- elaboration and implementation of Dijkstra's algorithm for shortest path
+	- elaboration and implementation of validation algorithms
+- **Lucien Iseli**:
+	- elaboration and implementation of network
+	- computation of statistical informations
+	- computation of information for edges of network (train types, walking edges)
+	- implementation of visualisation
+- **Florian Ravasi**:
+	- elaboration and implementation of network
+	- computation of statistical informations
+	- computation of information for edges of network (train types, walking edges)
+	- implementation of visualisation
+- **Jules Gottraux**:
+	- elaboration and implementation of network
+	- elaboration and implementation of Dijkstra's algorithm for shortest path
+	- elaboration and implementation of validation algorithms
