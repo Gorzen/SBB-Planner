@@ -2,7 +2,7 @@
 
 Our robust journey planner is composed of multiple jupyter notebooks. They all have a specific purpose (e.g. to create a certain data structure) but act as a whole together. However, they all are independent in the sense that by default the data is loaded from our home directories so each one of them can be run separetely, to avoid the need of running all notebooks to be able to use the planner. The actual planner is in the file `main.ipynb`. The goal of each notebook, except for `main.ipynb`, is to ease the creation of the network used by the predictive algorithm of the planner. They will create intermediate data structures to this aim.
 ## Video: 
-The video presenting the project can be found [here](https://www.youtube.com/watch?v=Z4xStTFRn4g)
+The video presenting the project can be found [here](https://www.youtube.com/watch?v=KwKWkDXAXSM)
 
 ## The network:
 #### Structure:
