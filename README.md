@@ -102,7 +102,9 @@ For more information about the algorithms, you are more than welcome to look at 
 ## Example schedule, comparison with SBB
 Let's try our planner and compare it to SBB's planner. We'll try to go from 'Zürich HB' to 'Zürich, Auzelg' on Wednesday 27-05-2020 and we want to arrive at 12:30 with confidence 95%. Here is our planner results and SBB's planner:
 
-<img src="data/schedule-comparison.png" alt="Schedule comparison" width="800"/>
+<br/>
+<img src="data/schedule-comparison.png" alt="schedule_comparison" width="1000"/>
+<br/>
 
 We notice that the route we suggest is in fact exactly the same as one of the routes SBB suggests:
 - S-Bahn from Zürich HB to Glattbrugg
