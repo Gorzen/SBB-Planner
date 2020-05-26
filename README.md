@@ -39,7 +39,7 @@ Concerning the creation of the network, the following diagram illustrate the dat
 
 **create_walking_edges**: This notebook computes the time it takes to walk between stations that are under 500m from each-other. It will then be saved as a pickle file. The time to walk is extracted from the `transfers` file present on the hdfs filesystem and otherwise is computed as 2min + 1min per 50m.
 
-**compute_statistics**: This notebook computes the mean, standard deviation and (confidence intervals of) durations corresponding to needed confidence levels. These statistics are computed on each  type, hour and station. It uses the historical data of the SBB. It will write the created data as an ORC file in the home of the user running the notebook.
+**compute_statistics**: This notebook computes the mean, standard deviation and (confidence intervals of) durations corresponding to needed confidence levels. These statistics are computed on each  type, hour and station. It uses the historical data of the SBB. More precisely, we use only real measurements when available (using `A%_PROGNOSE)` and otherwise we trust the standard measurements. It will write the created data as an ORC file in the home of the user running the notebook.
 
 **add_statistics_to_edges**: In this notebook, the statistical data computed in `compute_mean_std.ipynb` and saved in `delay_distribution_percentiles.or` are loaded and added to the edges of our network (saved to `edges_with_mean_and_std_sec.orc`, in the home of the current user). This will later be used to create a network.
 
@@ -101,7 +101,9 @@ For more information about the algorithms, you are more than welcome to look at 
 
 ## Example schedule, comparison with SBB
 Let's try our planner and compare it to SBB's planner. We'll try to go from 'Zürich HB' to 'Zürich, Auzelg' on Wednesday 27-05-2020 and we want to arrive at 12:30 with confidence 95%. Here is our planner results and SBB's planner:
-<img src="data/schedule-comparison.png" alt="schedule_comparison" width="800"/>
+
+<img src="data/schedule-comparison.png" alt="Schedule comparison" width="800"/>
+
 We notice that the route we suggest is in fact exactly the same as one of the routes SBB suggests:
 - S-Bahn from Zürich HB to Glattbrugg
 - Small walk from Glattbrug to Glattbrugg, Bahnhof
@@ -109,8 +111,11 @@ We notice that the route we suggest is in fact exactly the same as one of the ro
 
 
 ## Possible improvements
-- Walking is weird because of reverse
-- Better mean and std calculation (ditch if less than X for example) + better stats (t-distribution not gaussian) + keys for the stats (direction in a station)
+The first thing that feels odd is that because the user will input the arrival time, we run the Dijsktra with a reversed network. This makes that the walking  travels in the output don't start walking when arriving at a station, but start walking to arrive exactly when the next transport is. This is not a major problem as the overall output will be the same, but still could be improved.
+
+Another improvement could be to have better statistics on the transport's durations. We use a gaussian distribution for the pre-computed durations with delay and t-distribution for the durations computed on the fly in the algorithm. This discrepancy is present simply because of a lack of time. In the end, the vast majority of the computed paths will stay the same as the difference between the two is not huge and most of the time the time available to change of train is big enough. So this is more of a thoeretical flaw than a problem in our planner.\
+Also we could ignore the historical data if there is not enough of it. Because, can we really trust a computed mean and standard deviation if we only have two or three sample?\
+Finally, a inherent potential problem with our statistics is that we do not take into account the direction of the transport. It may be possible that at a certain bus station for example, one direction has more delays that the other (because it leaves the center of a city for example). Adding the direction to that _keys_ of the statistics would thus make them more robust.
 
 ## Contributions
 - **Marijn Van Der Meer**: 
