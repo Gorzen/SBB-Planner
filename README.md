@@ -97,7 +97,16 @@ During the implementation of this algorithm, confidence intervals are added the 
 - for connections from public transport to walking, a walking edge will leave later if a delay is sampled from the last public transport edge
 - a final path is validated for the input confidence, meaning that for each edge that could cause problems in the path (e.g transport 1 -> transport 2 or transport -> walk), we sample a delay and see if the path remains feasible. This operation is repeated a hundred times. At the end, if the percentage of feasible paths is lower than the desired confidence, we increase our input confidence by 0.1 (e.g. from 0.9 to 0.91) and repeat Dijkstra's algorithm to find a new path. This operation is repeated till it finds a path validated to the desired confidence or no path. 
 
-For more information about the algorithms, you are more than welcome to look at the source code. 
+For more information about the algorithms, you are more than welcome to look at the source code.
+
+## Example schedule, comparison with SBB
+Let's try our planner and compare it to SBB's planner. We'll try to go from 'Zürich HB' to 'Zürich, Auzelg' on Wednesday 27-05-2020 and we want to arrive at 12:30 with confidence 95%. Here is our planner results and SBB's planner:
+<img src="data/schedule-comparison.png" alt="schedule_comparison" width="800"/>
+We notice that the route we suggest is in fact exactly the same as one of the routes SBB suggests:
+- S-Bahn from Zürich HB to Glattbrugg
+- Small walk from Glattbrug to Glattbrugg, Bahnhof
+- Tram from Glattbrug, Bahnhof to Zürich, Auzelg. Arriving at 12:29
+
 
 ## Possible improvements
 - Walking is weird because of reverse
