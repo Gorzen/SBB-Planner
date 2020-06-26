@@ -33,7 +33,7 @@ The policies for the delays are as follows:
 #### How it is built: 
 Concerning the creation of the network, the following diagram illustrate the data pipeline of our project, each rectangle corresponds to a file (either created or already present in the hdfs filesystem if it is at the root level) and each ellipse is a notebook.
 
-<img src="data/data_pipeline.png" alt="data_pipeline" width="800"/>
+![Data pipeline](data/data_pipeline.png?raw=true)
 
 **create_edges_and_nodes**: This notebook creates the nodes from all stations around Zurich HB (in 15 km radius) and the edges between all stations during the day (8am to 8pm). It will then write these to the home of the person running the notebook.
 
@@ -102,9 +102,7 @@ For more information about the algorithms, you are more than welcome to look at 
 ## Example schedule, comparison with SBB
 Let's try our planner and compare it to SBB's planner. We'll try to go from 'Zürich HB' to 'Zürich, Auzelg' on Wednesday 27-05-2020 and we want to arrive at 12:30 with confidence 95%. Here is our planner results and SBB's planner:
 
-<br/>
-<img src="data/schedule-comparison.png" alt="schedule_comparison" width="1000"/>
-<br/>
+![Schedule comparison](data/schedule-comparison.png?raw=true)
 
 We notice that the route we suggest is in fact exactly the same as one of the routes SBB suggests:
 - S-Bahn from Zürich HB to Glattbrugg
